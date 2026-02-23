@@ -1,21 +1,1483 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NYC · Mars 2026</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>NYC · Mars 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&display=swap');
 
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  :root {
+    --bg: #F4F3F1;
+    --bg2: #ECEAE6;
+    --white: #FFFFFF;
+    --text: #1A1917;
+    --text-muted: #9B9690;
+    --text-soft: #6B6860;
+    --border: #E2E0DC;
+    --border-soft: #EDEBE8;
 
-  <link rel="stylesheet" href="css/style.css" />
+    /* Accents pastel */
+    --lavender: #C8C2F0;
+    --lavender-bg: #F0EEF9;
+    --yellow: #F0D97A;
+    --yellow-bg: #FDFAEC;
+    --mint: #A8D8B0;
+    --mint-bg: #EFF8F1;
+    --peach: #F5C4A8;
+    --peach-bg: #FEF3EC;
+    --sky: #A8CCE8;
+    --sky-bg: #EBF4FB;
+    --rose: #F0A8B8;
+    --rose-bg: #FEF0F3;
+    --sage: #B8D4B8;
+    --sage-bg: #F0F6F0;
+
+    --accent: #7B6EE8;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 1000;
+    flex-shrink: 0;
+  }
+
+  .logo { display: flex; align-items: center; gap: 10px; }
+
+  .logo-emoji {
+    width: 36px; height: 36px;
+    background: var(--lavender-bg);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .logo-text { display: flex; flex-direction: column; line-height: 1.2; }
+
+  .logo-main {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .header-right {
+    display: flex; flex-direction: column; align-items: flex-end;
+  }
+
+  .trip-dates .dates {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .trip-dates .count {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    padding: 0 6px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 12px 8px 10px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2.5px solid transparent;
+    transition: all 0.2s;
+    letter-spacing: 0;
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* VIEWS */
+  .view { display: none; flex: 1; overflow: hidden; }
+  .view.active { display: flex; flex-direction: column; }
+
+  /* MAP VIEW */
+  #map { flex: 1; z-index: 1; }
+
+  /* Custom marker */
+  .custom-pin {
+    width: 34px; height: 34px;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    display: flex; align-items: center; justify-content: center;
+    border: 2.5px solid rgba(255,255,255,0.9);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+  }
+  .custom-pin .pin-icon { transform: rotate(45deg); font-size: 14px; }
+
+  /* CATEGORY COLORS — pastel */
+  .cat-monument { background: #C8C2F0; }
+  .cat-musee    { background: #A8CCE8; }
+  .cat-quartier { background: #A8D8B0; }
+  .cat-parc     { background: #B8D4B8; }
+  .cat-building { background: #F0D97A; }
+  .cat-shopping { background: #F5C4A8; }
+  .cat-resto    { background: #F0A8B8; }
+  .cat-eglise   { background: #D4C4A8; }
+  .cat-hotel    { background: #F0A8CC; }
+
+  /* POPUP */
+  .leaflet-popup-content-wrapper {
+    background: var(--white) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+    box-shadow: var(--shadow-lg) !important;
+    padding: 0 !important;
+    overflow: hidden;
+  }
+  .leaflet-popup-content { margin: 0 !important; width: 270px !important; }
+  .leaflet-popup-tip { background: var(--white) !important; }
+
+  .popup-content { padding: 16px; }
+
+  .popup-cat-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600;
+    padding: 3px 9px; border-radius: 20px;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .popup-title {
+    font-family: 'Fraunces', serif;
+    font-size: 17px; font-weight: 600;
+    color: var(--text); line-height: 1.2; margin-bottom: 4px;
+  }
+
+  .popup-address { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+
+  .popup-info-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 6px; margin-bottom: 10px;
+  }
+
+  .popup-info-item {
+    background: var(--bg); border-radius: 8px; padding: 8px 10px;
+  }
+
+  .popup-info-label {
+    font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 3px; font-weight: 600;
+  }
+
+  .popup-info-value { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.3; }
+
+  .popup-history {
+    font-size: 12px; color: var(--text-soft); line-height: 1.5;
+    border-top: 1px solid var(--border); padding-top: 10px;
+  }
+
+  .popup-links {
+    display: flex; gap: 6px;
+    margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px;
+  }
+
+  .popup-link {
+    flex: 1; padding: 8px; border-radius: 10px;
+    text-align: center; font-size: 11px; font-weight: 600;
+    text-decoration: none; transition: opacity 0.2s; color: var(--text);
+  }
+  .popup-link:hover { opacity: 0.75; }
+  .popup-link.primary { background: var(--lavender); }
+  .popup-link.secondary { background: var(--bg2); }
+
+  /* LIST VIEW */
+  #list-view { overflow-y: auto; }
+
+  .list-filters {
+    padding: 12px 16px; display: flex; gap: 6px;
+    overflow-x: auto; border-bottom: 1px solid var(--border);
+    flex-shrink: 0; -webkit-overflow-scrolling: touch;
+    background: var(--white);
+  }
+  .list-filters::-webkit-scrollbar { display: none; }
+
+  .filter-pill {
+    white-space: nowrap; padding: 6px 13px; border-radius: 20px;
+    font-size: 11px; font-weight: 500;
+    cursor: pointer; border: 1.5px solid var(--border);
+    color: var(--text-muted); background: var(--white);
+    transition: all 0.18s; flex-shrink: 0;
+  }
+  .filter-pill.active {
+    background: var(--lavender-bg); color: var(--accent);
+    border-color: var(--lavender);  font-weight: 600;
+  }
+
+  .list-scroll {
+    flex: 1; overflow-y: auto; padding: 12px 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .place-card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px; margin-bottom: 8px;
+    cursor: pointer; transition: all 0.18s;
+    display: flex; gap: 12px; align-items: flex-start;
+    box-shadow: var(--shadow);
+  }
+  .place-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+  .place-card-icon {
+    width: 42px; height: 42px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+
+  .place-card-body { flex: 1; min-width: 0; }
+
+  .place-card-cat {
+    font-size: 10px; font-weight: 600;
+    color: var(--text-muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+
+  .place-card-name {
+    font-family: 'Fraunces', serif; font-size: 15px; font-weight: 600;
+    color: var(--text); white-space: nowrap; overflow: hidden;
+    text-overflow: ellipsis; margin-bottom: 5px;
+  }
+
+  .place-card-meta {
+    display: flex; gap: 8px; font-size: 11px; color: var(--text-muted);
+    flex-wrap: wrap;
+  }
+
+  .place-card-meta span {
+    display: flex; align-items: center; gap: 3px;
+    background: var(--bg); padding: 2px 7px; border-radius: 6px;
+  }
+
+  /* DETAIL MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(26,25,23,0.4); backdrop-filter: blur(6px);
+    align-items: flex-end;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--white); border-radius: 24px 24px 0 0;
+    width: 100%; max-height: 88dvh; overflow-y: auto;
+    padding: 6px 20px 40px; animation: slideUp 0.28s ease;
+    box-shadow: 0 -4px 40px rgba(0,0,0,0.12);
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal-handle {
+    width: 36px; height: 4px; background: var(--border);
+    border-radius: 2px; margin: 10px auto 14px;
+  }
+
+  .modal-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600;
+    padding: 4px 10px; border-radius: 20px;
+    margin-bottom: 10px; color: var(--text);
+  }
+
+  .modal-title {
+    font-family: 'Fraunces', serif; font-size: 26px; font-weight: 600;
+    line-height: 1.15; margin-bottom: 6px; color: var(--text);
+  }
+
+  .modal-address {
+    color: var(--text-muted); font-size: 13px;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 4px;
+  }
+
+  .modal-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin-bottom: 14px;
+  }
+
+  .modal-info-card {
+    background: var(--bg); border-radius: 12px; padding: 12px;
+  }
+  .modal-info-card.full { grid-column: 1 / -1; }
+
+  .modal-info-label {
+    font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 4px; font-weight: 600;
+  }
+
+  .modal-info-value {
+    font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4;
+  }
+
+  .modal-history {
+    background: var(--lavender-bg); border: 1px solid var(--lavender);
+    border-radius: 14px; padding: 14px; margin-bottom: 14px;
+  }
+
+  .modal-history-title {
+    font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--accent); font-weight: 700;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+  }
+
+  .modal-history-text {
+    font-size: 13px; color: var(--text-soft); line-height: 1.6;
+  }
+
+  .modal-tips { margin-bottom: 16px; }
+
+  .modal-tip {
+    display: flex; gap: 10px; align-items: flex-start; margin-bottom: 8px;
+    background: var(--bg); border-radius: 10px; padding: 10px 12px;
+  }
+
+  .modal-tip-icon { font-size: 15px; flex-shrink: 0; }
+  .modal-tip-text { font-size: 13px; color: var(--text-soft); line-height: 1.5; }
+
+  .modal-actions { display: flex; gap: 8px; }
+
+  .modal-btn {
+    flex: 1; padding: 14px; border-radius: 14px;
+    text-align: center; font-size: 12px; font-weight: 700;
+    text-decoration: none; letter-spacing: 0.3px;
+    border: none; cursor: pointer; transition: opacity 0.2s;
+    color: var(--text);
+  }
+  .modal-btn:hover { opacity: 0.8; }
+  .modal-btn.primary { background: var(--lavender); }
+  .modal-btn.secondary { background: var(--bg2); }
+  .modal-btn.close-btn { flex: none; width: 50px; background: var(--bg2); }
+
+  /* Leaflet overrides */
+  .leaflet-container { background: #e8eef2; }
+
+  /* MAP VIEW */
+  #map-view { position: relative; }
+
+  .map-filter-bar {
+    position: absolute;
+    top: 12px; left: 0; right: 0;
+    z-index: 500;
+    display: flex;
+    gap: 6px;
+    padding: 0 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    pointer-events: all;
+  }
+  .map-filter-bar::-webkit-scrollbar { display: none; }
+
+  .map-filter-pill {
+    white-space: nowrap;
+    padding: 7px 13px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'Montserrat', sans-serif;
+    cursor: pointer;
+    border: none;
+    color: #555;
+    background: rgba(255,255,255,0.93);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.13);
+    transition: all 0.18s;
+    flex-shrink: 0;
+  }
+  .map-filter-pill.active {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 3px 12px rgba(123,110,232,0.4);
+  }
+
+  /* PROGRAMME */
+  .prog-scroll {
+    flex: 1; overflow-y: auto; padding: 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .prog-day { margin-bottom: 22px; }
+
+  .prog-day-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .prog-day-number {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+    color: var(--text-muted); text-transform: uppercase; white-space: nowrap;
+  }
+
+  .prog-day-date {
+    font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600;
+    color: var(--text); line-height: 1;
+  }
+
+  .prog-day-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--lavender); flex-shrink: 0;
+  }
+  .prog-day-dot.special { background: var(--mint); }
+
+  .prog-day-line { flex: 1; height: 1px; background: var(--border); }
+
+  .prog-day-badge {
+    font-size: 10px; letter-spacing: 0.3px;
+    font-weight: 600; padding: 3px 9px;
+    border-radius: 20px; white-space: nowrap; color: var(--text);
+  }
+
+  .prog-card {
+    background: var(--white); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .prog-event {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .prog-event:last-child { border-bottom: none; }
+
+  .prog-event-time {
+    width: 68px; flex-shrink: 0; padding: 12px 10px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    border-right: 1px solid var(--border-soft); gap: 2px;
+  }
+
+  .prog-time-value {
+    font-size: 13px; font-weight: 700;
+    color: var(--accent); line-height: 1; letter-spacing: -0.2px;
+  }
+
+  .prog-time-label {
+    font-size: 8px; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 500; letter-spacing: 0.3px;
+  }
+
+  .prog-event-body { flex: 1; padding: 12px; }
+  .prog-event-icon { font-size: 20px; margin-bottom: 4px; display: block; }
+
+  .prog-event-name {
+    font-weight: 600; font-size: 13px; color: var(--text);
+    margin-bottom: 2px; line-height: 1.3;
+  }
+
+  .prog-event-desc { font-size: 11px; color: var(--text-muted); line-height: 1.5; }
+
+  .prog-event-tag {
+    display: inline-block; margin-top: 6px;
+    font-size: 9px; font-weight: 700; padding: 2px 8px;
+    border-radius: 10px; color: var(--text); letter-spacing: 0.3px;
+  }
+
+  .prog-add-note {
+    background: var(--yellow-bg); border: 1px dashed var(--yellow);
+    border-radius: 10px; padding: 9px 14px; margin-top: 8px;
+    font-size: 11px; color: var(--text-muted); text-align: center;
+  }
+
+  .flight-card {
+    background: var(--sky-bg); border: 1px solid var(--sky);
+    border-radius: 12px; padding: 14px;
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .flight-icon { font-size: 26px; }
+  .flight-info { flex: 1; }
+
+  .flight-route {
+    font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600;
+    color: var(--text); line-height: 1; margin-bottom: 2px;
+  }
+
+  .flight-details { font-size: 11px; color: var(--text-muted); }
+  .flight-time { text-align: right; }
+
+  .flight-time-val {
+    font-size: 22px; font-weight: 700; color: var(--text);
+    letter-spacing: -0.5px; line-height: 1;
+  }
+
+  .flight-time-label {
+    font-size: 9px; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 600;
+  }
+
+  .prog-nb-days {
+    text-align: center; padding: 10px;
+    font-size: 11px; font-weight: 600; letter-spacing: 1px;
+    color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;
+  }
+</style>
 </head>
 <body>
 
-<!-- CONTENU HTML ORIGINAL À CONSERVER ICI -->
-<div id="app">NYC Trip Mapper</div>
+<header>
+  <div class="logo">
+    <div class="logo-emoji">🗽</div>
+    <div class="logo-text">
+      <div class="logo-main">New York</div>
+    </div>
+  </div>
+  <div class="header-right trip-dates">
+    <div class="dates">9 — 18 Mars</div>
+    <div class="count" id="place-count">— lieux</div>
+  </div>
+</header>
 
-<script src="js/app.js"></script>
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('map')">🗺 Carte</div>
+  <div class="tab" onclick="switchTab('list')">📋 Liste</div>
+  <div class="tab" onclick="switchTab('programme')">📅 Programme</div>
+</div>
+
+<div class="view active" id="map-view">
+  <div class="map-filter-bar">
+    <button class="map-filter-pill active" onclick="filterMap('all', this)">Tout</button>
+    <button class="map-filter-pill" onclick="filterMap('Monument', this)">🏛 Monuments</button>
+    <button class="map-filter-pill" onclick="filterMap('Building', this)">🏢 Buildings</button>
+    <button class="map-filter-pill" onclick="filterMap('Musée', this)">🎨 Musées</button>
+    <button class="map-filter-pill" onclick="filterMap('Quartier', this)">🚶 Quartiers</button>
+    <button class="map-filter-pill" onclick="filterMap('Parc', this)">🌳 Parcs</button>
+    <button class="map-filter-pill" onclick="filterMap('Église', this)">⛪ Églises</button>
+    <button class="map-filter-pill" onclick="filterMap('Shopping', this)">🛍 Shopping</button>
+    <button class="map-filter-pill" onclick="filterMap('Restaurant', this)">🍕 Restos</button>
+    <button class="map-filter-pill" onclick="filterMap('Hôtel', this)">🏠 Hôtel</button>
+  </div>
+  <div id="map"></div>
+</div>
+
+<div class="view" id="list-view">
+  <div class="list-filters">
+    <button class="filter-pill active" onclick="filterList('all', this)">Tout</button>
+    <button class="filter-pill" onclick="filterList('Monument', this)">🏛 Monuments</button>
+    <button class="filter-pill" onclick="filterList('Building', this)">🏢 Buildings</button>
+    <button class="filter-pill" onclick="filterList('Musée', this)">🎨 Musées</button>
+    <button class="filter-pill" onclick="filterList('Quartier', this)">🚶 Quartiers</button>
+    <button class="filter-pill" onclick="filterList('Parc', this)">🌳 Parcs</button>
+    <button class="filter-pill" onclick="filterList('Église', this)">⛪ Églises</button>
+    <button class="filter-pill" onclick="filterList('Shopping', this)">🛍 Shopping</button>
+    <button class="filter-pill" onclick="filterList('Restaurant', this)">🍕 Restos</button>
+  </div>
+  <div class="list-scroll" id="list-scroll"></div>
+</div>
+
+<!-- PROGRAMME VIEW -->
+<div class="view" id="programme-view">
+  <div class="prog-scroll" id="prog-scroll"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
+  <div class="modal" id="modal-content">
+    <div class="modal-handle"></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const places = [
+  // MONUMENTS
+  {
+    name: "Empire State Building",
+    cat: "Monument",
+    icon: "🏙",
+    emoji: "🗼",
+    lat: 40.7484, lng: -73.9857,
+    address: "20 W 34th St, New York, NY 10001",
+    hours: "10h–23h (dernier accès 22h)",
+    price: "✅ City Pass · (valeur ~44$ Main Deck / 79$ Top Deck)",
+    website: "https://www.esbnyc.com",
+    history: "Inauguré en 1931, l'Empire State Building fut pendant 40 ans le plus haut bâtiment du monde. Construit en seulement 410 jours, ce chef-d'œuvre Art Déco compte 102 étages. Il a servi de décor à King Kong (1933) et reste le symbole absolu de New York.",
+    tips: ["Réserver en ligne pour éviter les files", "Le coucher de soleil (vers 18h en mars) est magique depuis l'observatoire", "L'éclairage nocturne change selon les événements"]
+  },
+  {
+    name: "9/11 Memorial Museum",
+    cat: "Musée",
+    icon: "🕊",
+    lat: 40.7115, lng: -74.0134,
+    address: "180 Greenwich St, New York, NY 10007",
+    hours: "9h–21h (dernière entrée 20h)",
+    price: "✅ City Pass · (valeur ~30$ adulte)",
+    website: "https://www.911memorial.org",
+    history: "Situé à l'emplacement exact des Twin Towers, ce mémorial rend hommage aux 2 977 victimes des attentats du 11 septembre 2001. Les deux bassins réfléchissants (les plus grands cascades artificielles d'Amérique) occupent l'empreinte des tours. Le musée souterrain conserve des milliers d'artefacts et témoignages.",
+    tips: ["Réserver impérativement à l'avance", "Prévoir minimum 2-3 heures", "Moment de recueillement très émouvant"]
+  },
+  {
+    name: "Statue de la Liberté + Ellis Island",
+    cat: "Monument",
+    icon: "🗽",
+    lat: 40.6892, lng: -74.0445,
+    address: "Liberty Island, New York Harbor",
+    hours: "Premier ferry ~8h30 / Musée Ellis Island ouvre à 9h30",
+    price: "✅ City Pass · (valeur ~24$ ferry — couronne non incluse)",
+    website: "https://www.nps.gov/stli",
+    history: "Offerte par la France en 1886, la Statue de la Liberté est l'œuvre du sculpteur Frédéric Auguste Bartholdi et de l'ingénieur Gustave Eiffel. Haute de 93 mètres avec son socle, elle accueillit des millions d'immigrants arrivant par Ellis Island entre 1892 et 1954.",
+    tips: ["Réserver la visite de la couronne des mois à l'avance", "Ellis Island museum inclus dans le ferry", "Partir tôt le matin pour éviter l'affluence"]
+  },
+  {
+    name: "Brooklyn Bridge",
+    cat: "Monument",
+    icon: "🌉",
+    lat: 40.7061, lng: -73.9969,
+    address: "Brooklyn Bridge, New York, NY 10038",
+    hours: "Accessible 24h/24",
+    price: "Gratuit",
+    website: "https://www.nycgo.com",
+    history: "Chef-d'œuvre de l'ingénieur John Augustus Roebling, inauguré en 1883, il fut pendant des années le plus long pont suspendu du monde (486 m). Sa construction prit 14 ans et coûta la vie à plusieurs ouvriers, dont Roebling lui-même. La passerelle piétonne offre une vue imprenable sur Manhattan.",
+    tips: ["La traversée à pied prend 30-40 min", "Vue spectaculaire sur le Financial District", "Côté DUMBO pour les meilleures photos avec les deux tours"]
+  },
+  {
+    name: "Times Square",
+    cat: "Quartier",
+    icon: "✨",
+    lat: 40.7580, lng: -73.9855,
+    address: "Times Square, Midtown Manhattan",
+    hours: "24h/24",
+    price: "Gratuit",
+    website: "https://www.timessquarenyc.org",
+    history: "Carrefour iconique surnommé 'The Crossroads of the World', Times Square tire son nom du New York Times qui y installa son siège en 1904. Ses panneaux publicitaires lumineux consomment 5 fois moins d'énergie depuis le passage aux LED. La tradition du ball drop le 31 décembre existe depuis 1907.",
+    tips: ["Surtout la nuit pour les néons", "Attention aux pickpockets", "Le quartier des théâtres de Broadway est tout autour"]
+  },
+  {
+    name: "Wall Street Bull",
+    cat: "Monument",
+    icon: "🐂",
+    lat: 40.7056, lng: -74.0134,
+    address: "Broadway & Morris St, New York, NY 10004",
+    hours: "Accessible 24h/24",
+    price: "Gratuit",
+    website: "https://www.nycgo.com",
+    history: "Sculpture de Arturo Di Modica, installée illégalement devant le NYSE en 1989 après le crash de 1987, comme symbole de la résistance américaine. Pesant 3 200 kg, elle est devenue l'une des œuvres d'art les plus photographiées au monde. La 'Fearless Girl' lui fait face depuis 2017.",
+    tips: ["File d'attente le jour pour la photo", "Tôt le matin pour une photo sans foule", "La Fearless Girl est à quelques mètres"]
+  },
+  {
+    name: "Rockefeller Center (Top of the Rock)",
+    cat: "Monument",
+    icon: "🏙",
+    lat: 40.7587, lng: -73.9787,
+    address: "45 Rockefeller Plaza, New York, NY 10111",
+    hours: "10h–21h (dernière montée)",
+    price: "✅ City Pass · (valeur ~40$ adulte)",
+    website: "https://www.topoftherocknyc.com",
+    history: "Complexe de 19 bâtiments Art Déco construit entre 1930 et 1939 par John D. Rockefeller Jr. Le 30 Rockefeller Plaza (67 étages) abrite NBC Studios. L'observatoire 'Top of the Rock' (69e étage) offre la vue la plus photographiée de New York : l'Empire State Building face à vous.",
+    tips: ["Vue unique sur l'Empire State Building (différent de l'ESB lui-même)", "La patinoire en hiver est magnifique", "Radio City Music Hall juste à côté"]
+  },
+  // BUILDINGS
+  {
+    name: "Chrysler Building",
+    cat: "Building",
+    icon: "🏛",
+    lat: 40.7516, lng: -73.9755,
+    address: "405 Lexington Ave, New York, NY 10174",
+    hours: "Lobby accessible 8h–18h (jours ouvrés)",
+    price: "Gratuit (lobby)",
+    website: "https://www.chryslerbuilding.com",
+    history: "Joyau de l'Art Déco (1930), dessiné par William Van Alen pour le magnat de l'automobile Walter Chrysler. Pendant 11 mois, ce fut le plus haut bâtiment du monde (319 m) avant d'être dépassé par l'Empire State Building. Son couronnement en acier inoxydable avec ses gargouilles en forme d'ornements d'Aigle Chrysler est unique.",
+    tips: ["Le lobby intérieur vaut le détour (marbres et inox)", "Best view from 42nd St & Lexington", "Photographier depuis la 3rd Avenue pour la façade entière"]
+  },
+  {
+    name: "Woolworth Building",
+    cat: "Building",
+    icon: "🏢",
+    lat: 40.7128, lng: -74.0079,
+    address: "233 Broadway, New York, NY 10279",
+    hours: "Visite guidée uniquement (réservation)",
+    price: "20–45$ (visite guidée)",
+    website: "https://www.woolworthtours.com",
+    history: "Surnommé 'La cathédrale du commerce', ce gratte-ciel néo-gothique (1913) fut le plus haut bâtiment du monde pendant 17 ans. Financé cash par Frank W. Woolworth (fondateur des magasins 5&10 cents), il coûta 13,5 millions de dollars. Cass Gilbert en fut l'architecte. Le président Wilson inaugura l'éclairage en appuyant sur un bouton depuis Washington.",
+    tips: ["Visite guidée très bien (lobby fabuleux)", "À 5 min du 9/11 Memorial", "Admirez les gargouilles gothiques depuis la rue"]
+  },
+  {
+    name: "Flatiron Building",
+    cat: "Building",
+    icon: "🗼",
+    lat: 40.7411, lng: -73.9897,
+    address: "175 5th Ave, New York, NY 10010",
+    hours: "Extérieur 24h/24",
+    price: "Gratuit (extérieur)",
+    website: "https://www.nycgo.com",
+    history: "Chef-d'œuvre de Daniel Burnham (1902), le Flatiron Building ('fer à repasser') occupe le triangle formé par Broadway, 5th Avenue et 23rd Street. Avec ses 87 mètres pour seulement 2 mètres à la pointe, ce fut l'un des premiers gratte-ciel de New York. Sa forme unique générait des courants d'air qui soulevaient les jupes des femmes.",
+    tips: ["Photo parfaite depuis le coin 23rd & Broadway", "Brunir dans Madison Square Park en face", "Quartier sympa pour flâner"]
+  },
+  {
+    name: "One World Trade Center",
+    cat: "Building",
+    icon: "🗼",
+    lat: 40.7127, lng: -74.0134,
+    address: "285 Fulton St, New York, NY 10007",
+    hours: "9h–21h",
+    price: "42$ adulte",
+    website: "https://www.oneworldobservatory.com",
+    history: "Inauguré en 2014, le One World Trade Center (541 m, 104 étages) est le plus haut bâtiment de l'hémisphère occidental et le 6e plus haut au monde. Sa hauteur de 1776 pieds rend hommage à l'année de l'indépendance américaine. L'Oculus, la gare/centre commercial voisin dessiné par Santiago Calatrava, forme une colombe au décollage.",
+    tips: ["Vue à 360° sur NYC, NJ et Connecticut par temps clair", "L'Oculus est libre d'accès", "Ascenseur 'Sky Pod' impressionnant (47 sec)"]
+  },
+  {
+    name: "Grand Central Terminal",
+    cat: "Building",
+    icon: "🚂",
+    lat: 40.7527, lng: -73.9772,
+    address: "89 E 42nd St, New York, NY 10017",
+    hours: "5h30–2h",
+    price: "Gratuit",
+    website: "https://www.grandcentralterminal.com",
+    history: "Ouvert en 1913, Grand Central est la plus grande gare du monde en nombre de quais (44) avec 67 voies. Son plafond voûté vert-de-gris représente la constellation du Zodiaque avec 2 500 étoiles (peintes à l'envers selon la légende médiévale). Menacée de démolition dans les années 60, elle fut sauvée notamment grâce à Jackie Kennedy Onassis.",
+    tips: ["Le 'whisper corridor' sous la salle principale", "Le marché culinaire (Dining Concourse) est excellent", "Levez les yeux : le plafond est époustouflant"]
+  },
+  {
+    name: "New York Public Library",
+    cat: "Building",
+    icon: "📚",
+    lat: 40.7532, lng: -73.9822,
+    address: "476 5th Ave, New York, NY 10018",
+    hours: "10h–18h (fermé dim)",
+    price: "Gratuit",
+    website: "https://www.nypl.org",
+    history: "Inaugurée en 1911, la bibliothèque principale (Stephen A. Schwarzman Building) est un chef-d'œuvre Beaux-Arts gardé par les célèbres lions Patience et Fortitude. Elle abrite plus de 55 millions de documents. La Rose Main Reading Room (3e étage), avec ses plafonds de 18 mètres, est l'une des plus belles salles du monde.",
+    tips: ["La Rose Main Reading Room vaut vraiment le détour", "Exhibition gratuite souvent en cours", "Bryant Park juste derrière - parfait pour un café"]
+  },
+  // MUSÉES
+  {
+    name: "Metropolitan Museum of Art",
+    cat: "Musée",
+    icon: "🎨",
+    lat: 40.7794, lng: -73.9632,
+    address: "1000 5th Ave, New York, NY 10028",
+    hours: "10h–17h (ven-sam jusqu'à 21h)",
+    price: "35$ adulte (suggestion, pas obligatoire pour résidents NY)",
+    website: "https://www.metmuseum.org",
+    history: "Le plus grand musée d'art des États-Unis, fondé en 1870. Plus de 1,5 million d'œuvres sur 200 000 m². Le toit offre une vue magnifique sur Central Park. Parmi les chefs-d'œuvre : les armures médiévales, le temple de Dendur (Égypte), Van Gogh, Rembrandt, et la collection impressionniste.",
+    tips: ["Impossible de tout voir en une journée", "Le Roof Garden (mai-oct) est gratuit", "L'aile égyptienne et le temple de Dendur sont uniques"]
+  },
+  {
+    name: "Museum of Modern Art (MoMA)",
+    cat: "Musée",
+    icon: "🖼",
+    lat: 40.7614, lng: -73.9776,
+    address: "11 W 53rd St, New York, NY 10019",
+    hours: "10h30–17h30 (ven jusqu'à 21h)",
+    price: "🆓 Gratuit (avantage BNP Paribas)",
+    website: "https://www.moma.org",
+    history: "Fondé en 1929, le MoMA possède l'une des plus importantes collections d'art moderne au monde. La Nuit étoilée de Van Gogh, Les Demoiselles d'Avignon de Picasso, la Campbell's Soup Can de Warhol, ou encore La Persistance de la mémoire de Dalí sont ici. L'architecture du bâtiment rénové par Yoshio Taniguchi (2004) est remarquable.",
+    tips: ["Entrée gratuite — amener votre carte BNP Paribas", "Le vendredi soir c'est moins fréquenté", "La sculpture garden est magnifique", "L'audio-guide est vraiment excellent"]
+  },
+  {
+    name: "American Museum of Natural History",
+    cat: "Musée",
+    icon: "🦕",
+    lat: 40.7813, lng: -73.9740,
+    address: "200 Central Park West, New York, NY 10024",
+    hours: "10h–17h30",
+    price: "✅ City Pass · (valeur ~28$ adulte)",
+    website: "https://www.amnh.org",
+    history: "Fondé en 1869, ce musée colossal (45 salles permanentes) abrite plus de 32 millions de spécimens. Le hall des dinosaures est l'un des plus impressionnants au monde. La salle Rose (planétarium) a été reconstruit en 2000. C'est le musée de La Nuit au Musée (2006).",
+    tips: ["La salle des dinosaures est absolument incroyable", "Le planétarium a des shows inspirants", "Prévoir minimum 3-4 heures"]
+  },
+  {
+    name: "Morgan Library & Museum",
+    cat: "Musée",
+    icon: "📜",
+    lat: 40.7494, lng: -73.9816,
+    address: "225 Madison Ave, New York, NY 10016",
+    hours: "10h30–17h (ven jusqu'à 21h, fermé lun)",
+    price: "25$ adulte",
+    website: "https://www.themorgan.org",
+    history: "Ancienne bibliothèque privée du banquier J.P. Morgan, ouverte au public en 1924. Elle conserve des manuscrits de Mozart, Dickens, Steinbeck, des Gutenberg Bible (l'une des 3 complètes aux USA), des lettres de Washington et Lincoln. L'East Room est considérée comme l'une des plus belles pièces d'Amérique.",
+    tips: ["Beaucoup moins fréquenté que le MoMA", "L'East Room (ancienne bibliothèque) est magistral", "Expositions temporaires souvent excellentes"]
+  },
+  {
+    name: "The Frick Collection",
+    cat: "Musée",
+    icon: "🖼",
+    lat: 40.7713, lng: -73.9671,
+    address: "1 E 70th St, New York, NY 10021",
+    hours: "10h–18h (fermé lun-mar)",
+    price: "22$ adulte",
+    website: "https://www.frick.org",
+    history: "Collection privée de l'industriel Henry Clay Frick installée dans sa mansion (1914). Elle regroupe des Vermeer, Rembrandt, El Greco, Goya, Velázquez, Turner, Fragonard. Considérée comme l'une des plus belles collections privées du monde. En cours de rénovation partielle en 2025.",
+    tips: ["Atmosphère intime et unique (mansion privée)", "Moins fréquenté que le MoMA ou le Met", "Vérifier les horaires d'ouverture (travaux possibles)"]
+  },
+  // QUARTIERS
+  {
+    name: "Central Park",
+    cat: "Parc",
+    icon: "🌳",
+    lat: 40.7851, lng: -73.9683,
+    address: "Central Park, New York, NY",
+    hours: "6h–1h",
+    price: "Gratuit",
+    website: "https://www.centralparknyc.org",
+    history: "Créé en 1858 par Frederick Law Olmsted et Calvert Vaux, Central Park s'étend sur 341 hectares en plein cœur de Manhattan. Il accueille 42 millions de visiteurs par an. On y trouve le Strawberry Fields memorial (John Lennon), le Bethesda Fountain, le Zoo et 36 km de chemins.",
+    tips: ["Louer un vélo pour une balade complète", "Strawberry Fields (72nd St) pour rendre hommage à Lennon", "En mars : promenade hivernale très atmosphérique"]
+  },
+  {
+    name: "Bryant Park",
+    cat: "Parc",
+    icon: "🏡",
+    lat: 40.7536, lng: -73.9832,
+    address: "Bryant Park, New York, NY 10018",
+    hours: "7h–22h",
+    price: "Gratuit",
+    website: "https://bryantpark.org",
+    history: "Petit parc de 3,9 ha derrière la New York Public Library, Bryant Park est un des parcs les plus fréquentés du monde. Il accueille la Fashion Week en été et une célèbre patinoire en hiver. Réaménagé dans les années 80 pour lutter contre l'insécurité, il est devenu un modèle de transformation urbaine.",
+    tips: ["Café ou déjeuner sur les chaises vertes", "Patinoire en mars encore possible", "Le kiosque à journaux old-school à voir"]
+  },
+  {
+    name: "Little Italy",
+    cat: "Quartier",
+    icon: "🍕",
+    lat: 40.7188, lng: -73.9973,
+    address: "Little Italy, Manhattan, NY",
+    hours: "Toujours accessible",
+    price: "Gratuit (balade)",
+    website: "https://www.nycgo.com",
+    history: "Ancien quartier d'immigrants italiens, Little Italy s'est réduit à quelques rues autour de Mulberry Street. C'est ici que Francis Ford Coppola a tourné des scènes du Parrain. Les restaurants et cafés italiens y perpétuent la tradition. La Feast of San Gennaro en septembre en est le point culminant.",
+    tips: ["Mulberry Street pour les restaurants italiens", "À deux pas de Chinatown et SoHo", "Essayez les cannoli chez Ferrara (depuis 1892)"]
+  },
+  {
+    name: "Chinatown",
+    cat: "Quartier",
+    icon: "🏮",
+    lat: 40.7158, lng: -73.9970,
+    address: "Chinatown, Manhattan, NY",
+    hours: "Toujours accessible",
+    price: "Gratuit (balade)",
+    website: "https://www.explorechinesetowns.com",
+    history: "L'un des plus vieux et plus denses Chinatowns du monde occidental, avec plus de 100 000 résidents d'origine asiatique. La communauté s'est installée dès les années 1870. Mott Street est l'artère principale. Le Nouveau An Chinois (fév/mars selon l'année) y est célébré avec faste.",
+    tips: ["Dim sum le dimanche matin chez Nom Wah Tea Parlor (1920)", "Légumes et fruits exotiques au marché Canal St", "Chercher les restaurants fréquentés par les locaux"]
+  },
+  {
+    name: "Greenwich Village",
+    cat: "Quartier",
+    icon: "🎭",
+    lat: 40.7341, lng: -74.0010,
+    address: "Greenwich Village, Manhattan, NY",
+    website: "https://www.nycgo.com",
+    hours: "Toujours accessible",
+    price: "Gratuit (balade)",
+    history: "Le Village a été le berceau de la contre-culture américaine depuis les années 1910. Bob Dylan, Jack Kerouac, Allen Ginsberg, Jimi Hendrix y ont vécu ou joué. Washington Square Park en est le cœur. Le mouvement LGBT y a pris naissance avec les émeutes de Stonewall (1969).",
+    tips: ["Washington Square Park + fontaine + arc de triomphe", "Bleecker Street pour les boutiques indépendantes", "Le café Caffe Reggio ouvert depuis 1927"]
+  },
+  {
+    name: "SoHo et TriBeCa",
+    cat: "Quartier",
+    icon: "🎨",
+    lat: 40.7237, lng: -74.0018,
+    address: "SoHo, New York, NY",
+    hours: "Toujours accessible",
+    price: "Gratuit (balade)",
+    website: "https://www.nycgo.com",
+    history: "SoHo (South of Houston) est célèbre pour ses bâtiments en fonte du XIXe siècle reconvertis en lofts d'artistes puis en boutiques de luxe. TriBeCa (Triangle Below Canal) est l'un des quartiers les plus chers du monde avec ses entrepôts transformés en appartements de stars.",
+    tips: ["Greene Street pour les façades en fonte", "Nombreuses galeries d'art gratuites", "Cafés et restos de qualité"]
+  },
+  {
+    name: "DUMBO",
+    cat: "Quartier",
+    icon: "🌉",
+    lat: 40.7033, lng: -73.9881,
+    address: "DUMBO, Brooklyn, NY",
+    hours: "Toujours accessible",
+    price: "Gratuit (balade)",
+    website: "https://www.dumbo.is",
+    history: "DUMBO (Down Under the Manhattan Bridge Overpass) est le quartier branché de Brooklyn. Ancien quartier industriel reconverti, il offre les plus belles vues sur le Manhattan Bridge et Brooklyn Bridge. La Main Street Dumbo est l'une des photos les plus célèbres de New York : la rue encadrée par le Manhattan Bridge.",
+    tips: ["La photo iconique : Main St entre Water St et Front St", "Jacques Torres Chocolate pour une pause", "Brooklyn Bridge Park pour se poser face à Manhattan"]
+  },
+  {
+    name: "Harlem",
+    cat: "Quartier",
+    icon: "🎵",
+    lat: 40.8116, lng: -73.9465,
+    address: "Harlem, Manhattan, NY",
+    hours: "Toujours accessible",
+    price: "Gratuit (balade)",
+    website: "https://www.nycgo.com",
+    history: "Berceau de la Renaissance de Harlem dans les années 1920, ce quartier a vu naître le jazz, le blues et la culture afro-américaine moderne. Langston Hughes, Duke Ellington, Ella Fitzgerald y ont vécu. Le Apollo Theater reste la scène de talent la plus légendaire d'Amérique.",
+    tips: ["Gospel le dimanche matin dans une église locale", "Apollo Theater visites guidées disponibles", "Soul food restaurant comme Sylvia's"]
+  },
+  {
+    name: "Coney Island",
+    cat: "Quartier",
+    icon: "🎡",
+    lat: 40.5755, lng: -73.9707,
+    address: "Coney Island, Brooklyn, NY",
+    hours: "Varie (parc ouvert printemps-automne)",
+    price: "Accès libre (attractions payantes)",
+    website: "https://www.coneyisland.com",
+    history: "Station balnéaire mythique de New York depuis la fin du XIXe siècle. Le parc Luna Park abrite le Cyclone, montagnes russes en bois de 1927. Nathan's Famous Hot Dogs y est né en 1916. Les plages accueillent 3 millions de visiteurs chaque été. En mars le parc peut être partiellement fermé.",
+    tips: ["Vérifier les ouvertures en mars (hors saison)", "Nathan's Famous Hot Dogs à ne pas manquer", "Promenade sur le boardwalk même en hiver"]
+  },
+  // FIFTH AVENUE
+  {
+    name: "Fifth Avenue",
+    cat: "Quartier",
+    icon: "🛍",
+    lat: 40.7549, lng: -73.9840,
+    address: "5th Avenue, Midtown Manhattan, New York",
+    hours: "Toujours accessible (boutiques 10h–20h env.)",
+    price: "Gratuit (balade)",
+    website: "https://www.nycgo.com",
+    history: "L'avenue la plus célèbre du monde s'étend sur 8 km à travers Manhattan. De l'Empire State Building au sud jusqu'à Central Park au nord, elle concentre les plus grandes maisons de luxe : Tiffany & Co, Saks Fifth Avenue, Bergdorf Goodman, Cartier, Gucci, Louis Vuitton. Face au Rockefeller Center et à St. Patrick's Cathedral, elle est le cœur battant de Midtown.",
+    tips: ["Tiffany & Co au n°727 (la vraie boutique du film)", "Saks Fifth Avenue en face de St. Patrick's", "Apple Store Fifth Avenue (cube de verre) au n°767", "La vue sur St. Patrick's encadrée par les gratte-ciels est iconique"]
+  },
+  // EGLISES
+  {
+    name: "St. Patrick's Cathedral",
+    cat: "Église",
+    icon: "⛪",
+    lat: 40.7583, lng: -73.9760,
+    address: "5th Ave & 50th St, New York, NY 10022",
+    hours: "6h30–20h45",
+    price: "Gratuit",
+    website: "https://saintpatrickscathedral.org",
+    history: "La plus grande cathédrale néo-gothique des États-Unis (1879), chef-d'œuvre de James Renwick Jr. Pouvant accueillir 2 400 fidèles, elle est le siège de l'archidiocèse de New York. Face au Rockefeller Center, elle contraste magnifiquement avec les gratte-ciels modernes. La parade de la St-Patrick passe devant le 17 mars.",
+    tips: ["La parade de St-Patrick passe ici le 17 mars !", "L'intérieur est époustouflant même pour les non-croyants", "Ouverture dès 6h30 pour un moment de calme"]
+  },
+  {
+    name: "Cathedral St. John the Divine",
+    cat: "Église",
+    icon: "🕌",
+    lat: 40.8037, lng: -73.9622,
+    address: "1047 Amsterdam Ave, New York, NY 10025",
+    hours: "7h30–18h",
+    price: "Gratuit (visites guidées payantes)",
+    website: "https://www.stjohndivine.org",
+    history: "La plus grande cathédrale du monde (en superficie) encore en construction depuis 1892 ! Cathédrale épiscopale de style gothique et roman, elle mesure 183 m de long. Elle est surnommée 'St. John the Unfinished'. Des expositions d'art contemporain sont régulièrement présentées dans l'édifice.",
+    tips: ["Visite guidée 'Vertical Tour' en hauteur (vertige garanti)", "Concerts de musique classique fréquents", "Peacocks se promènent parfois dans l'enceinte !"]
+  },
+  // SHOPPING
+  {
+    name: "Macy's Herald Square",
+    cat: "Shopping",
+    icon: "🛍",
+    lat: 40.7510, lng: -73.9890,
+    address: "151 W 34th St, New York, NY 10001",
+    hours: "10h–21h (dim 11h–20h)",
+    price: "Entrée gratuite",
+    website: "https://www.macys.com",
+    history: "Le plus grand magasin du monde lors de son ouverture en 1902, avec 200 000 m² de surface commerciale et 11 étages. Macy's est célèbre pour son défilé de Thanksgiving (depuis 1924) et ses vitrines de Noël. La carte touristique donne une remise de 10%.",
+    tips: ["Récupérer la carte 'Visitor Savings Pass' pour 10% de remise", "Le 8e étage pour les souvenirs NYC", "Très fréquenté le week-end"]
+  },
+  {
+    name: "Boutique Harry Potter (WB Store)",
+    cat: "Shopping",
+    icon: "⚡",
+    lat: 40.7540, lng: -73.9823,
+    address: "935 Broadway, New York, NY 10010",
+    hours: "10h–22h",
+    price: "Entrée gratuite",
+    website: "https://www.wbstudiostore.com",
+    history: "Le plus grand magasin officiel Harry Potter et Warner Bros du monde, ouvert en 2023 sur 5 étages au cœur de Manhattan. Robes, baguettes, bonbons du Monde Sorcier, expériences immersives... Un paradis pour les fans de toutes générations.",
+    tips: ["Les expériences interactives valent le détour", "File d'attente possible le week-end", "Nombreux articles exclusifs introuvables ailleurs"]
+  },
+  {
+    name: "Bloomingdale's",
+    cat: "Shopping",
+    icon: "👜",
+    lat: 40.7624, lng: -73.9660,
+    address: "1000 3rd Ave, New York, NY 10022",
+    hours: "10h–20h (dim 11h–19h)",
+    price: "Entrée gratuite",
+    website: "https://www.bloomingdales.com",
+    history: "Grand magasin de luxe new-yorkais fondé en 1861, surnommé 'Bloomie's'. L'iconique sac brun avec le logo est devenu un symbole de New York. Situé sur Lexington Avenue à l'Upper East Side, c'est le temple du shopping de luxe accessible.",
+    tips: ["Le sac brun Bloomingdale's est un souvenir culte", "Soldes en mars possibles (fin de saison)", "À 5 min du Metropolitan Museum"]
+  },
+  {
+    name: "La Boutique des LEGO",
+    cat: "Shopping",
+    icon: "🧱",
+    lat: 40.7594, lng: -73.9794,
+    address: "620 5th Ave, Rockefeller Center, NY 10020",
+    hours: "10h–20h (sam jusqu'à 21h)",
+    price: "Entrée gratuite",
+    website: "https://www.lego.com",
+    history: "L'une des plus grandes boutiques LEGO au monde, installée au Rockefeller Center. Elle propose des sets exclusifs, des ateliers de construction et une réplique géante de New York en LEGO. Les sets NYC (New York City Architecture, Empire State Building) y sont incontournables.",
+    tips: ["Set 'New York City Architecture' exclusif", "Atelier construction pour les enfants", "Au sein du Rockefeller Center"]
+  },
+  // RESTAURANTS
+  {
+    name: "Katz's Delicatessen (When Harry Met Sally)",
+    cat: "Restaurant",
+    icon: "🥪",
+    lat: 40.7223, lng: -73.9873,
+    address: "205 E Houston St, New York, NY 10002",
+    hours: "8h–22h45 (ven-sam jusqu'à 2h45)",
+    price: "Pastrami ~22$",
+    website: "https://katzsdelicatessen.com",
+    history: "Ouvert en 1888, Katz's est l'un des derniers delis juifs de Manhattan. Célèbre pour la scène de When Harry Met Sally (1989) où Meg Ryan simule un orgasme (la table est marquée). Le pastrami et le corned beef y sont légendaires. Des photos de célébrités tapissent les murs.",
+    tips: ["La scène de Quand Harry rencontre Sally est ici !", "Commander le pastrami on rye (pain de seigle)", "Système de ticket - ne pas le perdre !"]
+  },
+  {
+    name: "Magnolia Bakery",
+    cat: "Restaurant",
+    icon: "🧁",
+    lat: 40.7325, lng: -74.0009,
+    address: "401 Bleecker St, New York, NY 10014",
+    hours: "9h–22h (ven-sam jusqu'à 23h)",
+    price: "Cupcake ~4$",
+    website: "https://www.magnoliabakery.com",
+    history: "Boulangerie culte de Greenwich Village (1996), rendue célèbre par la série Sex and the City. Carrie Bradshaw et Miranda mangeaient leurs cupcakes sur ce trottoir de Bleecker Street. La banana pudding est la spécialité maison, et les files d'attente font partie de l'expérience.",
+    tips: ["File d'attente quasi permanente mais ça va vite", "La banana pudding est THE spécialité", "Ambiance village new-yorkais authentique"]
+  },
+  {
+    name: "Brunch au MUD (East Village)",
+    cat: "Restaurant",
+    icon: "☕",
+    lat: 40.7262, lng: -73.9826,
+    address: "307 E 9th St, New York, NY 10003",
+    hours: "7h–21h",
+    price: "Brunch ~15-25$",
+    website: "https://www.mudnyc.com",
+    history: "Café de quartier typique de l'East Village, MUD est connu pour son café artisanal servi dans des vases en argile. L'ambiance bohème et décontractée en fait un spot favori des artistes et créatifs du quartier. Le brunch du week-end est une institution locale.",
+    tips: ["Ambiance très East Village authentique", "Le café dans les vases en argile est leur signature", "Idéal pour un brunch non touristique"]
+  },
+  {
+    name: "Nathan's Famous Hot Dogs (Coney Island)",
+    cat: "Restaurant",
+    icon: "🌭",
+    lat: 40.5745, lng: -73.9796,
+    address: "1310 Surf Ave, Brooklyn, NY 11224",
+    hours: "11h–21h",
+    price: "Hot dog ~5$",
+    website: "https://nathansfamous.com",
+    history: "Fondé en 1916 par Nathan Handwerker, immigrant polonais, avec un investissement de 300$. Ses hot dogs à 5 cents étaient deux fois moins chers que la concurrence. Le concours de mangeurs de hot dogs du 4 juillet est une tradition depuis 1916. Plus de 700 millions de hot dogs vendus par an aux USA.",
+    tips: ["L'original depuis 1916 !", "Le concours de hot dogs du 4 juillet est ici", "Combiné avec la visite de Coney Island"]
+  },
+  {
+    name: "Waldorf Astoria Bar",
+    cat: "Restaurant",
+    icon: "🍸",
+    lat: 40.7569, lng: -73.9766,
+    address: "301 Park Ave, New York, NY 10022",
+    hours: "Bar : 12h–1h",
+    price: "Cocktail ~25-35$",
+    website: "https://www.waldorfastoria.com",
+    history: "L'hôtel Waldorf Astoria, ouvert en 1931, est l'un des palaces les plus mythiques du monde. Son bar art déco a servi des présidents (depuis Hoover), des stars et des têtes couronnées. La salade Waldorf (pomme, céleri, noix, mayo) y a été inventée. Rouvert en 2025 après une rénovation de 7 ans.",
+    tips: ["Vérifier la réouverture (rénovation 2017-2025)", "Dress code élégant requis au bar", "Happy hour si disponible pour un cocktail historique"]
+  },
+  // HOTEL
+  {
+    name: "Mon Hôtel 🏠",
+    cat: "Hôtel",
+    icon: "🛏",
+    lat: 40.7635, lng: -73.9916,
+    address: "301 W 51st St 5, Hell's Kitchen, New York, NY 10019",
+    hours: "Check-in : 15h / Check-out : 11h",
+    price: "Ton hébergement",
+    website: "https://maps.google.com/?q=301+W+51st+St+New+York+NY+10019",
+    history: "Situé dans Hell's Kitchen, quartier emblématique de Midtown West. Autrefois quartier populaire irlandais et ouvrier, Hell's Kitchen est aujourd'hui l'un des quartiers les plus branchés de NYC, avec ses restaurants, bars et sa proximité avec Broadway et Times Square.",
+    tips: ["À 10 min à pied de Times Square", "Proche du Rockefeller Center et de St. Patrick's", "Hell's Kitchen = plein de bons restos abordables autour"]
+  }
+];
+
+// Category colors
+const catColors = {
+  'Monument': '#C8C2F0',
+  'Building': '#F0D97A',
+  'Musée': '#A8CCE8',
+  'Parc': '#B8D4B8',
+  'Quartier': '#A8D8B0',
+  'Shopping': '#F5C4A8',
+  'Restaurant': '#F0A8B8',
+  'Église': '#D4C4A8',
+  'Hôtel': '#F0A8CC'
+};
+
+const catClasses = {
+  'Monument': 'cat-monument',
+  'Building': 'cat-building',
+  'Musée': 'cat-musee',
+  'Parc': 'cat-parc',
+  'Quartier': 'cat-quartier',
+  'Shopping': 'cat-shopping',
+  'Restaurant': 'cat-resto',
+  'Église': 'cat-eglise'
+};
+
+// Init
+document.getElementById('place-count').textContent = places.length + ' lieux';
+
+// MAP
+const map = L.map('map', {
+  center: [40.7282, -73.9942],
+  zoom: 12,
+  zoomControl: false
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap contributors © CARTO',
+  maxZoom: 19
+}).addTo(map);
+
+L.control.zoom({ position: 'topright' }).addTo(map);
+
+// NEIGHBORHOOD ZONES (polygons ultra-transparent)
+// MARKERS — store refs for filtering
+const allMarkers = [];
+
+// Add markers
+places.forEach((place, i) => {
+  const color = catColors[place.cat] || '#C8C2F0';
+  const icon = L.divIcon({
+    className: '',
+    html: `<div class="custom-pin ${catClasses[place.cat] || 'cat-monument'}" style="background:${color}"><span class="pin-icon">${place.icon}</span></div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -35]
+  });
+
+  const marker = L.marker([place.lat, place.lng], { icon }).addTo(map);
+
+  marker.bindPopup(`
+    <div class="popup-content">
+      <span class="popup-cat-badge" style="background:${color}">${place.cat}</span>
+      <div class="popup-title">${place.name}</div>
+      <div class="popup-address">📍 ${place.address}</div>
+      <div class="popup-info-grid">
+        <div class="popup-info-item">
+          <div class="popup-info-label">Horaires</div>
+          <div class="popup-info-value">${place.hours}</div>
+        </div>
+        <div class="popup-info-item">
+          <div class="popup-info-label">Prix</div>
+          <div class="popup-info-value">${place.price}</div>
+        </div>
+      </div>
+      <div class="popup-history">${place.history.substring(0, 120)}...</div>
+      <div class="popup-links">
+        <a class="popup-link primary" href="#" onclick="openModal(${i}); return false;">Voir tout</a>
+        <a class="popup-link secondary" href="${place.website}" target="_blank">Site web</a>
+      </div>
+    </div>
+  `, { maxWidth: 300 });
+
+  allMarkers.push({ marker, cat: place.cat });
+});
+
+// LIST VIEW
+function renderList(filter) {
+  const scroll = document.getElementById('list-scroll');
+  const filtered = filter === 'all' ? places : places.filter(p => p.cat === filter);
+  scroll.innerHTML = filtered.map((p, i) => {
+    const realI = places.indexOf(p);
+    const color = catColors[p.cat] || '#c9a84c';
+    return `
+      <div class="place-card" onclick="openModal(${realI})">
+        <div class="place-card-icon" style="background:${color}20; color:${color}">
+          ${p.icon}
+        </div>
+        <div class="place-card-body">
+          <div class="place-card-cat">${p.cat}</div>
+          <div class="place-card-name">${p.name}</div>
+          <div class="place-card-meta">
+            <span>🕐 ${p.hours.split('(')[0].trim()}</span>
+            <span>💰 ${p.price.length > 25 ? p.price.substring(0,25)+'...' : p.price}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+renderList('all');
+
+function filterList(cat, btn) {
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  renderList(cat);
+}
+
+// MODAL
+function openModal(i) {
+  const p = places[i];
+  const color = catColors[p.cat] || '#c9a84c';
+  const tipsHtml = p.tips.map(t => `
+    <div class="modal-tip">
+      <span class="modal-tip-icon">💡</span>
+      <span class="modal-tip-text">${t}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('modal-body').innerHTML = `
+    <span class="modal-badge" style="background:${color}">${p.cat}</span>
+    <div class="modal-title">${p.name}</div>
+    <div class="modal-address">📍 ${p.address}</div>
+    <div class="modal-grid">
+      <div class="modal-info-card">
+        <div class="modal-info-label">Horaires</div>
+        <div class="modal-info-value">${p.hours}</div>
+      </div>
+      <div class="modal-info-card">
+        <div class="modal-info-label">Tarifs</div>
+        <div class="modal-info-value">${p.price}</div>
+      </div>
+    </div>
+    <div class="modal-history">
+      <div class="modal-history-title">📖 Histoire & contexte</div>
+      <div class="modal-history-text">${p.history}</div>
+    </div>
+    <div class="modal-tips">${tipsHtml}</div>
+    <div class="modal-actions">
+      <a class="modal-btn primary" href="${p.website}" target="_blank">Site officiel</a>
+      <a class="modal-btn secondary" href="https://maps.google.com/?q=${encodeURIComponent(p.address)}" target="_blank">Google Maps</a>
+      <button class="modal-btn close-btn" onclick="closeModal()">✕</button>
+    </div>
+  `;
+
+  document.getElementById('modal').classList.add('open');
+
+  // Also center map on this place
+  map.setView([p.lat, p.lng], 15);
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modal')) closeModal();
+}
+
+// TAB SWITCHING
+// MAP FILTER
+function filterMap(cat, btn) {
+  document.querySelectorAll('.map-filter-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  allMarkers.forEach(({ marker, cat: mcat }) => {
+    if (cat === 'all' || mcat === cat) {
+      if (!map.hasLayer(marker)) map.addLayer(marker);
+    } else {
+      if (map.hasLayer(marker)) map.removeLayer(marker);
+    }
+  });
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(tab + '-view').classList.add('active');
+
+  if (tab === 'map') {
+    setTimeout(() => map.invalidateSize(), 100);
+  }
+  if (tab === 'programme') {
+    renderProgramme();
+  }
+}
+
+// PROGRAMME DATA
+const programme = [
+  {
+    date: "9 Mars", day: "Lundi", num: "J1", special: true,
+    events: [
+      { time: "11H45", label: "Arrivée", icon: "✈️", name: "Atterrissage à JFK", desc: "John F. Kennedy International Airport · Terminal à confirmer", tag: "Vol", tagColor: "#A8CCE8", flight: { route: "→ JFK", details: "John F. Kennedy International Airport", time: "11H45", timeLabel: "Arrivée locale" } },
+      { time: "14H00", label: "Approx.", icon: "🚇", name: "Trajet JFK → Hôtel", desc: "AirTrain + Subway E jusqu'à 50th St · ~1h · Option économique et pratique" },
+      { time: "15H00", label: "Env.", icon: "🏠", name: "Check-in Hôtel — Hell's Kitchen", desc: "301 W 51st St, Hell's Kitchen · Déposer les bagages", tag: "Hébergement", tagColor: "#F0A8CC" },
+      { time: "16H30", label: "Env.", icon: "✨", name: "Premier tour — Times Square", desc: "Juste à 10 min à pied · Profiter du décalage horaire pour explorer", tag: "Quartier", tagColor: "#A8D8B0" },
+      { time: "20H00", label: "Soir", icon: "🍕", name: "Dîner Hell's Kitchen", desc: "Plein de restos autour de l'hôtel pour ce premier soir" }
+    ]
+  },
+  {
+    date: "10 Mars", day: "Mardi", num: "J2",
+    events: [
+      { time: "08H30", label: "1er ferry", icon: "⛴", name: "Ferry depuis Battery Park → Statue de la Liberté", desc: "Premier ferry Statue Cruises depuis Battery Park · Arrivée à l'ouverture du musée Ellis Island · ✅ City Pass", tag: "Transport", tagColor: "#A8CCE8" },
+      { time: "09H00", label: "Arrivée", icon: "🗽", name: "Île de la Liberté", desc: "Visite extérieure · Promenade autour du socle · Vue imprenable sur Manhattan · Pas de montée à la couronne", tag: "Monument", tagColor: "#C8C2F0" },
+      { time: "09H30", label: "", icon: "🕊", name: "Ellis Island — Musée de l'Immigration", desc: "Musée inclus dans le City Pass · Retrace l'histoire des 12 millions d'immigrants 1892–1954 · Très émouvant · Prévoir 1h30", tag: "Musée", tagColor: "#A8CCE8" },
+      { time: "12H00", label: "Retour", icon: "⛴", name: "Ferry retour → Battery Park", desc: "Retour sur Manhattan · Déjeuner dans le Financial District" },
+      { time: "13H00", label: "", icon: "🐂", name: "Financial District — Wall Street", desc: "Wall Street Bull · Fearless Girl · One World Trade Center · L'Oculus de Calatrava · 9/11 Memorial (extérieur)", tag: "Quartier", tagColor: "#A8D8B0" },
+      { time: "16H00", label: "", icon: "🏙", name: "Empire State Building", desc: "Observatoire · ✅ City Pass · Coucher de soleil vers 18h en mars 🌅", tag: "Monument", tagColor: "#C8C2F0" },
+      { time: "19H00", label: "Match", icon: "🏒", name: "New York Rangers — Madison Square Garden", desc: "Match de hockey sur glace · 4 Pennsylvania Plaza, Midtown · L'une des plus mythiques salles de sport au monde !", tag: "Sport", tagColor: "#A8CCE8" }
+    ]
+  },
+  {
+    date: "11 Mars", day: "Mercredi", num: "J3",
+    events: [
+      { time: "09H00", label: "Ouverture", icon: "🕊", name: "9/11 Memorial Museum", desc: "✅ City Pass · Ouverture à 9h · Arriver dès l'ouverture · Prévoir 2h30 minimum", tag: "Musée", tagColor: "#A8CCE8" },
+      { time: "11H30", label: "", icon: "🗼", name: "One World Trade Center — Observatoire", desc: "À 5 min à pied du 9/11 · Vue 360° sur NYC · 42$ · Prévoir 1h", tag: "Building", tagColor: "#F0D97A" },
+      { time: "13H00", label: "Déjeuner", icon: "🍽", name: "Déjeuner dans le Financial District", desc: "Nombreux restos et food trucks autour du WTC" },
+      { time: "14H00", label: "", icon: "🕌", name: "L'Oculus", desc: "Gratuit · 5 min à pied · Architecture Santiago Calatrava · 30 min de visite", tag: "Building", tagColor: "#F0D97A" },
+      { time: "15H00", label: "Trajet", icon: "🚇", name: "Métro → Greenwich Village", desc: "Ligne A/C/E ou 1 jusqu'à West 4th St · ~20 min" },
+      { time: "15H30", label: "", icon: "🎭", name: "Greenwich Village / West Village", desc: "Washington Square Park · Bleecker Street · Boutiques indépendantes · Dîner dans le quartier", tag: "Quartier", tagColor: "#A8D8B0" }
+    ]
+  },
+  {
+    date: "12 Mars", day: "Jeudi", num: "J4",
+    events: [
+      { time: "10H00", label: "Ouverture", icon: "🦕", name: "American Museum of Natural History", desc: "✅ City Pass · Ouverture à 10h · La salle des dinosaures est incroyable · Prévoir 3-4h", tag: "Musée", tagColor: "#A8CCE8" },
+      { time: "13H00", label: "Déjeuner", icon: "🍽", name: "Déjeuner Upper West Side", desc: "Nombreux restos autour de Columbus Ave / Amsterdam Ave" },
+      { time: "14H30", label: "", icon: "🌳", name: "Central Park", desc: "À 5 min à pied du musée · Louer un vélo · Strawberry Fields · Bethesda Fountain", tag: "Parc", tagColor: "#A8D8B0" }
+    ]
+  },
+  {
+    date: "13 Mars", day: "Vendredi", num: "J5",
+    events: [
+      { time: "10H30", label: "Ouverture", icon: "🖼", name: "Museum of Modern Art (MoMA)", desc: "🆓 Gratuit BNP Paribas · Ouverture à 10h30 · Van Gogh, Picasso, Warhol, Dalí · Prévoir 2h30", tag: "Musée", tagColor: "#A8CCE8" },
+      { time: "13H00", label: "Déjeuner", icon: "🍽", name: "Déjeuner Midtown West", desc: "Quartier animé autour de la 53rd St et 6th Ave" },
+      { time: "14H30", label: "", icon: "🏛", name: "Chrysler Building (Lobby)", desc: "Gratuit · 10 min à pied · Incontournable Art Déco · Lobby marbre et inox · ~30 min", tag: "Building", tagColor: "#F0D97A" },
+      { time: "15H30", label: "", icon: "🏙", name: "Top of the Rock (Rockefeller Center)", desc: "✅ City Pass · 5 min à pied · Vue sur Empire State Building face à soi · Prévoir 1h", tag: "Monument", tagColor: "#C8C2F0" },
+      { time: "17H00", label: "", icon: "🛍", name: "Fifth Avenue", desc: "Tiffany & Co · Saks Fifth Avenue · Apple Store (cube de verre) · St. Patrick's façade", tag: "Quartier", tagColor: "#A8D8B0" },
+      { time: "20H00", label: "Soirée", icon: "⚡", name: "WB Store Harry Potter", desc: "935 Broadway · 5 étages · Ferme à 22h · Métro N/R/W jusqu'à 28th St (~15 min)", tag: "Shopping", tagColor: "#F5C4A8" }
+    ]
+  },
+  {
+    date: "14 Mars", day: "Samedi", num: "J6",
+    events: [
+      { time: "MATIN", label: "", icon: "🎨", name: "Metropolitan Museum of Art", desc: "35$ · Prévoir la journée entière · Temple de Dendur, armures médiévales...", tag: "Musée", tagColor: "#A8CCE8" },
+      { time: "APRÈS-MIDI", label: "", icon: "🎨", name: "Suite Met ou Frick Collection", desc: "Frick : 22$ · Collection d'art privée dans une mansion · Vermeer, Rembrandt", tag: "Musée", tagColor: "#A8CCE8" },
+      { time: "SOIR", label: "", icon: "🎵", name: "Upper East Side / Madison Avenue", desc: "Shopping et balade dans le quartier chic" }
+    ]
+  },
+  {
+    date: "15 Mars", day: "Dimanche", num: "J7",
+    events: [
+      { time: "MATIN", label: "", icon: "🌉", name: "Brooklyn Bridge (à pied)", desc: "Gratuit · 30-40 min de traversée · Vue magistrale sur Manhattan", tag: "Monument", tagColor: "#C8C2F0" },
+      { time: "MIDI", label: "", icon: "🌉", name: "DUMBO — Brooklyn", desc: "Photo iconique : Main St + Manhattan Bridge · Jacques Torres Chocolate", tag: "Quartier", tagColor: "#A8D8B0" },
+      { time: "APRÈS-MIDI", label: "", icon: "🎡", name: "Coney Island", desc: "Accessible en métro (D/N/F) · Nathan's Hot Dogs depuis 1916", tag: "Quartier", tagColor: "#A8D8B0" },
+      { time: "19H00", label: "Soirée", icon: "🏆", name: "Soirée Oscars — à l'hôtel", desc: "Cérémonie des Academy Awards en direct depuis Los Angeles · Installation devant l'écran avec snacks !", tag: "Événement", tagColor: "#C8C2F0" }
+    ]
+  },
+  {
+    date: "16 Mars", day: "Lundi", num: "J8",
+    events: [
+      { time: "MATIN", label: "", icon: "⛪", name: "St. Patrick's Cathedral", desc: "Gratuit · Ouvre à 6h30 · Chef-d'œuvre néo-gothique", tag: "Église", tagColor: "#D4C4A8" },
+      { time: "MATIN", label: "", icon: "🧁", name: "Brunch — Magnolia Bakery", desc: "Greenwich Village · La banana pudding est THE spécialité de Sally", tag: "Restaurant", tagColor: "#F0A8B8" },
+      { time: "APRÈS-MIDI", label: "", icon: "🏮", name: "Chinatown + Little Italy", desc: "Mulberry Street · Cannoli chez Ferrara (depuis 1892) · Dim Sum", tag: "Quartier", tagColor: "#A8D8B0" },
+      { time: "20H00", label: "Soirée", icon: "🌃", name: "230 Fifth Rooftop Garden Bar", desc: "230 5th Ave, Flatiron District · Bar rooftop avec vue panoramique sur l'Empire State Building · Dress code smart casual", tag: "Sortie", tagColor: "#F0A8CC" }
+    ]
+  },
+  {
+    date: "17 Mars", day: "Mardi", num: "J9", special: true,
+    events: [
+      { time: "MATIN", label: "", icon: "☘️", name: "St. Patrick's Day — Le grand jour !", desc: "Toute la ville est en vert · Ambiance irlandaise partout dans NYC !", tag: "Événement", tagColor: "#A8D8B0" },
+      { time: "11H00", label: "Départ", icon: "🚶", name: "Balade le long de la Parade", desc: "La parade remonte la 5th Avenue de la 44th à la 79th Street · Se mêler à la foule, profiter de l'ambiance, voir les fanfares et les régiments irlandais défiler", tag: "Événement", tagColor: "#A8D8B0" },
+      { time: "13H00", label: "", icon: "⛪", name: "Devant St. Patrick's Cathedral", desc: "La parade passe juste devant · Moment iconique avec la cathédrale en arrière-plan", tag: "Monument", tagColor: "#C8C2F0" },
+      { time: "SOIR", label: "", icon: "🍺", name: "Bars irlandais de Hell's Kitchen", desc: "Hell's Kitchen = le quartier irlandais par excellence · Nuit de la St-Patrick comme nulle part ailleurs !", tag: "Sortie", tagColor: "#A8D8B0" }
+    ]
+  },
+  {
+    date: "18 Mars", day: "Mercredi", num: "J10", special: true,
+    events: [
+      { time: "MATIN", label: "", icon: "🌅", name: "Dernière matinée à NYC", desc: "Profiter une dernière fois du quartier / shopping last minute" },
+      { time: "12H00", label: "Max", icon: "🏠", name: "Check-out Hôtel", desc: "301 W 51st St · Laisser les bagages à la consigne si possible" },
+      { time: "14H00", label: "Départ", icon: "🚕", name: "Trajet Hôtel → Newark EWR", desc: "NJ Transit + AirTrain ou taxi · Prévoir 1h30 min avec trafic", tag: "Transport", tagColor: "#A8CCE8" },
+      { time: "18H05", label: "Décollage", icon: "✈️", name: "Départ depuis Newark EWR", desc: "Newark Liberty International Airport · Bon voyage !", tag: "Vol", tagColor: "#A8CCE8", flight: { route: "EWR →", details: "Newark Liberty International Airport", time: "18H05", timeLabel: "Décollage" } }
+    ]
+  }
+];
+
+function renderProgramme() {
+  const scroll = document.getElementById('prog-scroll');
+  const days = programme.length;
+  let html = `<div class="prog-nb-days">✈ VOYAGE DE ${days} JOURS — 9 AU 18 MARS 2025</div>`;
+
+  programme.forEach(day => {
+    html += `<div class="prog-day">
+      <div class="prog-day-header">
+        <div class="prog-day-dot ${day.special ? 'special' : ''}"></div>
+        <div>
+          <div class="prog-day-number">${day.num} · ${day.day}</div>
+          <div class="prog-day-date">${day.date}</div>
+        </div>
+        <div class="prog-day-line"></div>
+        ${day.special ? '<span class="prog-day-badge" style="background:#A8D8B0;color:#1A1917">✦ Spécial</span>' : ''}
+      </div>`;
+
+    html += `<div class="prog-card">`;
+
+    day.events.forEach(ev => {
+      const hasFlight = ev.flight;
+      html += `<div class="prog-event">
+        <div class="prog-event-time">
+          <div class="prog-time-value">${ev.time}</div>
+          ${ev.label ? `<div class="prog-time-label">${ev.label}</div>` : ''}
+        </div>
+        <div class="prog-event-body">
+          <span class="prog-event-icon">${ev.icon}</span>`;
+
+      if (hasFlight) {
+        html += `<div class="flight-card">
+          <div class="flight-icon">${ev.icon}</div>
+          <div class="flight-info">
+            <div class="flight-route">${ev.flight.route}</div>
+            <div class="flight-details">${ev.flight.details}</div>
+          </div>
+          <div class="flight-time">
+            <div class="flight-time-val">${ev.flight.time}</div>
+            <div class="flight-time-label">${ev.flight.timeLabel}</div>
+          </div>
+        </div>`;
+      } else {
+        html += `<div class="prog-event-name">${ev.name}</div>
+          <div class="prog-event-desc">${ev.desc}</div>`;
+      }
+
+      if (ev.tag) {
+        html += `<span class="prog-event-tag" style="background:${ev.tagColor};color:#1A1917">${ev.tag}</span>`;
+      }
+
+      html += `</div></div>`;
+    });
+
+    html += `</div>`;
+
+    if (!day.special) {
+      html += ``;
+    }
+
+    html += `</div>`;
+  });
+
+  scroll.innerHTML = html;
+}
+</script>
 </body>
 </html>
